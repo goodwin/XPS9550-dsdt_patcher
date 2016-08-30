@@ -2,6 +2,9 @@
 
 rm ./wrk/*
 rm ./patched/*
+rm ./patched/.gitignore
+rm ./wrk/.gitignore
+rm ./original/.gitignore
 
 cp ./original/[SD]SDT*.aml ./wrk/
 rm ./wrk/SSDT-*x.aml
