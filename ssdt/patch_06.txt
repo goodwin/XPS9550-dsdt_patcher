@@ -1,0 +1,4 @@
+into definitionblock code_regex . insert
+begin
+  External (_SB_.PCI0.IGPU.XDSM, MethodObj)
+end;

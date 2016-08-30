@@ -1,0 +1,28 @@
+# Maintained by: PJALM (help@pjalm.com) for: http://pjalm.com/repos/
+
+# These patches are the registered property of PJALM.COM and can not be
+# redistributed or modified without the written consent of PJALM.COM.
+# Links to these patches are allowed. All material is protected under the DMCA.
+
+# Last Updated  : 05/07/2016
+# Patch Name    : SATA
+# Patch Version : 1.0
+
+into_all scope label _SB.PCI0.SAT0.PRT0 set_label begin _SB.PCI0.SATA.PRT0 end;
+into_all scope label _SB.PCI0.SAT0.PRT1 set_label begin _SB.PCI0.SATA.PRT1 end;
+into_all scope label _SB.PCI0.SAT0.PRT2 set_label begin _SB.PCI0.SATA.PRT2 end;
+into_all scope label _SB.PCI0.SAT0.PRT3 set_label begin _SB.PCI0.SATA.PRT3 end;
+
+into_all scope label \_SB.PCI0.SAT0.PRT0 set_label begin \_SB.PCI0.SATA.PRT0 end;
+into_all scope label \_SB.PCI0.SAT0.PRT1 set_label begin \_SB.PCI0.SATA.PRT1 end;
+into_all scope label \_SB.PCI0.SAT0.PRT2 set_label begin \_SB.PCI0.SATA.PRT2 end;
+into_all scope label \_SB.PCI0.SAT0.PRT3 set_label begin \_SB.PCI0.SATA.PRT3 end;
+
+# Change ID of SATA device for Intel 9 Series Chipset
+into device label SAT0 set_label begin SATA end;
+into_all all code_regex SAT0 replaceall_matched begin SATA end;
+into_all all code_regex External\s\(_SB_.PCI0.SAT1.* removeall_matched;
+into scope label _SB.PCI0.SAT0 set_label begin _SB.PCI0.SATA end;
+into scope label \_SB.PCI0.SAT0 set_label begin \_SB.PCI0.SATA end;
+into device label SAT1 remove_entry;
+into device label SATA insert begin

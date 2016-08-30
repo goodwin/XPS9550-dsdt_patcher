@@ -1,0 +1,2 @@
+#rename HECI to IMEI
+into device label HECI set_label begin IMEI end;

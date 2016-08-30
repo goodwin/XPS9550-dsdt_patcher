@@ -1,0 +1,31 @@
+#Maintained by: PHPdev32 for: Sourceforge
+into method label DTGP remove_entry;
+into definitionblock code_regex . insert
+begin
+Method (DTGP, 5, NotSerialized)\n
+{\n
+    If (LEqual (Arg0, ToUUID ("a0b5b7c6-1318-441c-b0c9-fe695eaf949b")))\n
+    {\n
+        If (LEqual (Arg1, One))\n
+        {\n
+            If (LEqual (Arg2, Zero))\n
+            {\n
+                Store (Buffer (One)\n
+                    {\n
+                        0x03\n
+                    }, Arg4)\n
+                Return (One)\n
+            }\n
+            If (LEqual (Arg2, One))\n
+            {\n
+                Return (One)\n
+            }\n
+        }\n
+    }\n
+    Store (Buffer (One)\n
+        {\n
+            0x00\n
+        }, Arg4)\n
+    Return (Zero)\n
+}
+end

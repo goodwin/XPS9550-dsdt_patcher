@@ -1,0 +1,30 @@
+# RP15->PXSX fix
+
+into method label XDSM parent_label RP15 remove_entry;
+into method label _RMV parent_label RP15 remove_entry; 
+into method label _PRW parent_label RP15 remove_entry;
+into method label _STA parent_label RP15 remove_entry;
+into device label RP15 insert begin
+    Name (_STA, 0x0F)\n
+    Name (_RMV, Zero)\n
+    Name (_PRW, Package (0x02)\n
+        {\n
+            0x09,\n
+            0x04\n
+        })\n
+end;
+into device label PXSX parent_label RP15 set_label begin X123X end;
+into method label _RMV parent_label X123X remove_entry;
+into method label _PRW parent_label X123X remove_entry;
+into method label _STA parent_label X123X remove_entry;
+into device label X123X insert begin
+    Name (_STA, 0x0F)\n
+    Name (_RMV, Zero)\n
+    Name (_PRW, Package (0x02)\n
+        {\n
+            0x09,\n
+            0x04\n
+        })\n
+end;
+
+into device label X123X parent_label RP15 set_label begin PXSX end;

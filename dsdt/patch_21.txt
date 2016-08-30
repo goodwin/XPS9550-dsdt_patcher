@@ -1,0 +1,212 @@
+#Battery fix
+into all code_regex Notify\s\(BAT0 replaceall_matched begin Notify (BATC end;
+into all code_regex Notify\s\(BAT1 replaceall_matched begin Notify (BATC end;
+
+into scope label _SB code_regex . insert begin
+        Device(BATC)\n
+        {\n
+            Name(_HID, EisaId ("PNP0C0A"))\n
+            Name(_UID, 0x02)\n
+            Method(_INI)\n
+            {\n
+                // disable original battery objects by setting invalid _HID\n
+                ^^BAT0._HID = 0\n
+                ^^BAT1._HID = 0\n
+            }\n
+            Method(CVWA, 3)\n
+            // Convert mW to mA (or mWh to mAh)\n
+            // Arg0 is mW or mWh (or mA/mAh in the case Arg2==0)\n
+            // Arg1 is mV (usually design voltage)\n
+            // Arg2 is whether conversion is needed (non-zero for convert)\n
+            // return is mA or mAh\n
+            {\n
+                If (Arg2)\n
+                {\n
+                    Arg0 = (Arg0 * 1000) / Arg1\n
+                }\n
+                Return(Arg0)\n
+            }\n
+            Method(_STA)\n
+            {\n
+                // call original _STA for BAT0 and BAT1\n
+                // result is bitwise OR between them\n
+                Return(^^BAT0._STA() | ^^BAT1._STA())\n
+            }\n
+            Name(B0CO, 0x00) // BAT0 0/1 needs conversion to mAh\n
+            Name(B1CO, 0x00) // BAT1 0/1 needs conversion to mAh\n
+            Name(B0DV, 0x00) // BAT0 design voltage\n
+            Name(B1DV, 0x00) // BAT1 design voltage\n
+            Method(_BST)\n
+            {
+                // Local0 BAT0._BST\n
+                // Local1 BAT1._BST\n
+                // Local2 BAT0._STA\n
+                // Local3 BAT1._STA\n
+                // Local4/Local5 scratch\n
+
+                // gather battery data from BAT0\n
+                Local0 = ^^BAT0._BST()\n
+                Local2 = ^^BAT0._STA()\n
+                If (0x1f == Local2)\n
+                {\n
+                    // check for invalid remaining capacity\n
+                    Local4 = DerefOf(Local0[2])\n
+                    If (!Local4 || Ones == Local4)\n
+                    {\n
+                        Local2 = 0\n
+                    }\n
+                }\n
+                // gather battery data from BAT1\n
+                Local1 = ^^BAT1._BST()\n
+                Local3 = ^^BAT1._STA()\n
+                If (0x1f == Local3)\n
+                {\n
+                    // check for invalid remaining capacity\n
+                    Local4 = DerefOf(Local1[2])\n
+                    If (!Local4 || Ones == Local4)
+                    {\n
+                        Local3 = 0\n
+                    }\n
+                }\n
+                // find primary and secondary battery\n
+                If (0x1f != Local2 && 0x1f == Local3)\n
+                {\n
+                    // make primary use BAT1 data\n
+                    Local0 = Local1 // BAT1._BST result\n
+                    Local2 = Local3 // BAT1._STA result\n
+                    Local3 = 0  // no secondary battery\n
+                }\n
+                // combine batteries into Local0 result if possible\n
+                If (0x1f == Local2 && 0x1f == Local3)\n
+                {\n
+                    // _BST 0 - Battery State - if one battery is charging, then charging, else discharging\n
+                    Local4 = DerefOf(Local0[0])\n
+                    Local5 = DerefOf(Local1[0])\n
+                    If (Local4 == 2 || Local5 == 2)\n
+                    {\n
+                        // 2 = charging\n
+                        Local0[0] = 2\n
+                    }\n
+                    ElseIf (Local4 == 1 || Local5 == 1)\n
+                    {\n
+                        // 1 = discharging\n
+                        Local0[0] = 1\n
+                    }\n
+                    ElseIf (Local4 == 5 || Local5 == 5)\n
+                    {\n
+                        // critical and discharging\n
+                        Local0[0] = 5\n
+                    }\n
+                    ElseIf (Local4 == 4 || Local5 == 4)\n
+                    {\n
+                        // critical\n
+                        Local0[0] = 4\n
+                    }\n
+                    // if none of the above, just leave as BAT0 is\n
+
+                    // Note: Depends on _BIF being called before _BST to set B0CO and B1CO\n
+
+                    // _BST 1 - Battery Present Rate - Add BAT0 and BAT1 values\n
+                    Local0[1] = CVWA(DerefOf(Local0[1]), B0DV, B0CO) + CVWA(DerefOf(Local1[1]), B1DV, B1CO)\n
+                    // _BST 2 - Battery Remaining Capacity - Add BAT0 and BAT1 values\n
+                    Local0[2] = CVWA(DerefOf(Local0[2]), B0DV, B0CO) + CVWA(DerefOf(Local1[2]), B1DV, B1CO)\n
+                    // _BST 3 - Battery Present Voltage - Average BAT0 and BAT1 values\n
+                    Local0[3] = (DerefOf(Local0[3]) + DerefOf(Local1[3])) / 2\n
+                }\n
+                Return(Local0)\n
+            } // _BST\n
+            Method(_BIF)\n
+            {\n
+                // Local0 BAT0._BIF\n
+                // Local1 BAT1._BIF\n
+                // Local2 BAT0._STA\n
+                // Local3 BAT1._STA\n
+                // Local4/Local5 scratch\n
+
+                // gather and validate data from BAT0\n
+                Local0 = ^^BAT0._BIF()\n
+                Local2 = ^^BAT0._STA()\n
+                If (0x1f == Local2)\n
+                {\n
+                    // check for invalid design capacity\n
+                    Local4 = DerefOf(Local0[1])\n
+                    If (!Local4 || Ones == Local4)\n
+                    {\n
+                        Local2 = 0\n
+                    }\n
+                    // check for invalid max capacity\n
+                    Local4 = DerefOf(Local0[2])\n
+                    If (!Local4 || Ones == Local4)\n
+                    {\n
+                        Local2 = 0\n
+                    }\n
+                    // check for invalid design voltage\n
+                    Local4 = DerefOf(Local0[4])\n
+                    If (!Local4 || Ones == Local4)\n
+                    {\n
+                        Local2 = 0\n
+                    }\n
+                }\n
+                // gather and validate data from BAT1\n
+                Local1 = ^^BAT1._BIF()\n
+                Local3 = ^^BAT1._STA()\n
+                If (0x1f == Local3)\n
+                {\n
+                    // check for invalid design capacity\n
+                    Local4 = DerefOf(Local1[1])\n
+                    If (!Local4 || Ones == Local4)\n
+                    {\n
+                        Local3 = 0\n
+                    }\n
+                    // check for invalid max capacity\n
+                    Local4 = DerefOf(Local1[2])\n
+                    If (!Local4 || Ones == Local4)\n
+                    {\n
+                        Local3 = 0\n
+                    }\n
+                    // check for invalid design voltage\n
+                    Local4 = DerefOf(Local1[4])\n
+                    If (!Local4 || Ones == Local4)\n
+                    {\n
+                        Local3 = 0\n
+                    }\n
+                }\n
+                // find primary and secondary battery\n
+                If (0x1f != Local2 && 0x1f == Local3)\n
+                {\n
+                    // make primary use BAT1 data\n
+                    Local0 = Local1 // BAT1._BIF result\n
+                    Local2 = Local3 // BAT1._STA result\n
+                    Local3 = 0  // no secondary battery\n
+                }\n
+                // combine batteries into Local0 result if possible\n
+                If (0x1f == Local2 && 0x1f == Local3)\n
+                {\n
+                    // _BIF 0 - Power Unit - 0 = mWh | 1 = mAh\n
+                    // set B0CO/B1CO if convertion to amps needed\n
+                    B0CO = !DerefOf(Local0[0])\n
+                    B1CO = !DerefOf(Local1[0])\n
+                    // set _BIF[0] = 1 => mAh\n
+                    Local0[0] = 1\n
+
+                    // _BIF 4 - Design Voltage - store value for each Battery in mV\n
+                    B0DV = DerefOf(Local0[4]) // cache BAT0 voltage\n
+                    B1DV = DerefOf(Local1[4]) // cache BAT1 voltage\n
+
+                    // _BIF 1 - Design Capacity - add BAT0 and BAT1 values\n
+                    Local0[1] = CVWA(DerefOf(Local0[1]), B0DV, B0CO) + CVWA(DerefOf(Local1[1]), B1DV, B1CO)\n
+                    // _BIF 2 - Last Full Charge Capacity - add BAT0 and BAT1 values\n
+                    Local0[2] = CVWA(DerefOf(Local0[2]), B0DV, B0CO) + CVWA(DerefOf(Local1[2]), B1DV, B1CO)\n
+                    // _BIF 3 - Battery Technology - leave BAT0 value\n
+                    // _BIF 4 - Design Voltage - average BAT0 and BAT1 values\n
+                    Local0[4] = (B0DV + B1DV) / 2\n
+                    // _BIF 5 - Design Capacity Warning - add BAT0 and BAT1 values\n
+                    Local0[5] = CVWA(DerefOf(Local0[5]), B0DV, B0CO) + CVWA(DerefOf(Local1[5]), B1DV, B1CO)\n
+                    // _BIF 6 - Design Capacity of Low - add BAT0 and BAT1 values\n
+                    Local0[6] = CVWA(DerefOf(Local0[6]), B0DV, B0CO) + CVWA(DerefOf(Local1[6]), B1DV, B1CO)\n
+                    // _BIF 7+ - Leave BAT0 values for now\n
+                }\n
+                Return(Local0)\n
+            } // _BIF\n
+        }
+end;

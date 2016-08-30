@@ -1,0 +1,47 @@
+# disable PEGP
+
+into method label _WAK code_regex RWAK\s\(Arg0\) replace_matched begin
+        NVOF ()\n
+        RWAK (Arg0)
+end;
+
+into method label _INI parent_label _SB.PCI0 insert begin
+            NVOF ()
+end;
+
+into method label _PTS code_regex PTS\s\(Arg0\) replace_matched begin
+        NVON ()\n
+        PTS (Arg0)
+end;
+
+into definitionblock code_regex . insert begin
+    Method (NVOF, 0, NotSerialized)\n
+    {\n
+        If (CondRefOf (\_SB.PCI0.PEG0.PEGP._OFF))\n
+        {\n
+            \_SB.PCI0.PEG0.PEGP._OFF ()\n
+        }\n
+        If (CondRefOf (\_SB.PCI0.PEG0.PEGP._PS3))\n
+        {\n
+            \_SB.PCI0.PEG0.PEGP._PS3 ()\n
+        }\n
+    }\n
+    Method (NVON, 0, NotSerialized)\n
+    {\n
+        If (CondRefOf (\_SB.PCI0.PEG0.PEGP._ON))\n
+        {\n
+            \_SB.PCI0.PEG0.PEGP._ON ()\n
+        }\n
+        If (CondRefOf (\_SB.PCI0.PEG0.PEGP._PS0))\n
+        {\n
+            \_SB.PCI0.PEG0.PEGP._PS0 ()\n
+        }\n
+    }
+end;
+
+into definitionblock code_regex . insert begin
+External (_SB_.PCI0.PEG0.PEGP._PS3, MethodObj)\n
+External (_SB_.PCI0.PEG0.PEGP._PS0, MethodObj)\n
+External (_SB_.PCI0.PEG0.PEGP._OFF, MethodObj)\n
+External (_SB_.PCI0.PEG0.PEGP._ON, MethodObj)\n
+end;

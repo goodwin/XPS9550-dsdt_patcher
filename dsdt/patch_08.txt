@@ -1,0 +1,12 @@
+# Maintained by: PJALM (help@pjalm.com) for: http://pjalm.com/repos/
+
+# These patches are the registered property of PJALM.COM and can not be
+# redistributed or modified without the written consent of PJALM.COM.
+# Links to these patches are allowed. All material is protected under the DMCA.
+
+# Last Updated  : 05/07/2016
+# Patch Name    : Basic Apple Device Renames
+# Patch Version : 1.0
+
+# Device Renames
+into_all all code_regex _T_([0-6]) replaceall_matched begin T_%1 end;

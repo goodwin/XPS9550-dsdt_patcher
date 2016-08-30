@@ -1,0 +1,21 @@
+# Maintained by: toleda for: github.com/toleda/audio_alc8xx
+# File: hdef3-alc8xx_audio-3.txt_v2.0
+# Credit: PikeRAlpha
+#
+# Add_HDEF, for dsdts with no HDEF, set Audio_ID: 13
+#
+# 1. Enable Audio ID: 13, Add HDEF/layout-id=13
+into method label _DSM parent_label HDEF remove_entry;
+into device label HDEF insert
+begin
+    Method (_DSM, 4, NotSerialized)\n
+    {\n
+        If (LEqual (Arg2, Zero)) { Return (Buffer() { 0x03 } ) }\n
+        Return (Package()\n
+        {\n
+                "layout-id", Buffer() { 0x0D, 0x00, 0x00, 0x00 },\n
+                "PinConfigurations", Buffer(Zero) {},\n
+                "hda-gfx", Buffer() { "onboard-1" },\n
+        })\n
+    }\n
+end;
